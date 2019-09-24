@@ -12,5 +12,9 @@ authors = ["Marián Skrip <marian.skripp@gmail.com>"]
 edition = "2018"
 license = "MIT"
 
+exclude = [
+    ".github/*"
+]
+
 
 [dependencies]
