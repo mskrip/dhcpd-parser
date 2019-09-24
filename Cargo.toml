@@ -1,0 +1,8 @@
+[package]
+name = "dhcpd_parser"
+description = "Parser for dhcpd configuration files. Currently supports only dhcpd.leases file of the OpenBSD base implementation"
+version = "0.1.0"
+authors = ["Marián Skrip <marian.skripp@gmail.com>"]
+edition = "2018"
+
+[dependencies]
