@@ -13,7 +13,7 @@ use dhcpd_parser::parser;
 use dhcpd_parser::parser::LeasesMethods;
 
 
-let leases = parser::parse("
+let res = parser::parse("
     lease 192.168.0.2 {
         starts 2 2019/01/01 22:00:00
         ends 2 2019/01/01 22:00:00
@@ -32,11 +32,22 @@ let leases = parser::parse("
     }
 ".to_string()).expect("This should be a correct lease file");
 
-assert_eq!(leases[0].hostname.as_ref().unwrap(), "TESTHOSTNAME");
-assert_eq!(leases[1].dates.starts.unwrap().to_string(), "Monday 1985/01/01 00:00:00");
+let leases = res.unwrap().leases;
+
+assert_eq!(
+    leases[0].hostname.as_ref().unwrap(),
+    "TESTHOSTNAME",
+);
+assert_eq!(
+    leases[1].dates.starts.unwrap().to_string(),
+    "Monday 1985/01/01 00:00:00",
+);
 assert!(leases[1].dates.ends.is_none());
 
 assert!(leases[0].abandoned);
 assert!(!leases[1].abandoned);
-assert_eq!(leases.by_leased("192.168.0.2".to_string()).unwrap(), leases[0]);
+assert_eq!(
+    leases.by_leased("192.168.0.2".to_string()).unwrap(),
+    leases[0],
+);
 ```
