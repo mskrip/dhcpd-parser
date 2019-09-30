@@ -170,6 +170,18 @@ impl Lease {
             abandoned: false,
         }
     }
+
+    pub fn is_active_at(&self, when: Date) -> bool {
+        if self.dates.starts.is_some() && self.dates.starts.unwrap() > when {
+            return false;
+        }
+
+        if self.dates.ends.is_some() && self.dates.ends.unwrap() < when {
+            return false;
+        }
+
+        return true;
+    }
 }
 
 pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(lease: &mut Lease, iter: &mut Peekable<T>) -> Result<(), String> {
