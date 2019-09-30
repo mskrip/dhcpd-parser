@@ -1,4 +1,5 @@
 use std::fmt;
+use std::cmp;
 
 pub type IPAddress = String;
 pub type MACAddress = String;
@@ -95,5 +96,41 @@ impl fmt::Display for Date {
             self.minute,
             self.second,
         )
+    }
+}
+
+impl cmp::PartialOrd for Date {
+    fn partial_cmp(&self, other: &Date) -> Option<cmp::Ordering> {
+        if self.year != other.year {
+            return self.year.partial_cmp(&other.year);
+        }
+
+        if self.month != other.month {
+            return self.month.partial_cmp(&other.month);
+        }
+
+        if self.day != other.day {
+            return self.day.partial_cmp(&other.day);
+        }
+
+        if self.hour != other.hour {
+            return self.hour.partial_cmp(&other.hour);
+        }
+
+        if self.minute != other.minute {
+            return self.minute.partial_cmp(&other.minute);
+        }
+
+        if self.second != other.second {
+            return self.second.partial_cmp(&other.second);
+        }
+
+        None
+    }
+}
+
+impl cmp::Ord for Date {
+    fn cmp(&self, other: &Date) -> cmp::Ordering {
+        return self.partial_cmp(other).unwrap();
     }
 }
