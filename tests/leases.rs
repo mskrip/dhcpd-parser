@@ -142,3 +142,43 @@ fn is_active_test() {
         ).unwrap()), false);
 }
 
+#[test]
+fn hostnames_test() {
+    let res = parser::parse("
+    lease 192.168.0.2 {
+        starts 2 2019/01/01 22:00:00
+        ends 2 2019/01/01 23:00:00
+        hardware type 11:11:11:11:11:11
+        uid Client1
+        client-hostname CLIENTHOSTNAME
+        hostname TESTHOSTNAME
+        abandoned
+    }
+
+    lease 192.168.0.3 {
+        starts 1 1985/01/02 00:00:00
+        ends 1 1985/01/02 02:00:00
+        hardware type 22:22:22:22:22:22
+        uid Client2
+        hostname TESTHOSTNAME
+    }
+    ".to_string());
+
+    let leases = res.unwrap().leases;
+
+    assert_eq!(leases.hostnames(), ["TESTHOSTNAME".to_owned()].iter().cloned().collect());
+
+    assert_eq!(leases.by_hostname(&"TESTHOSTNAME".to_owned()).unwrap(), leases[1]);
+    assert_eq!(leases.by_hostname(&"NOSUCHHOSTNAME".to_owned()), None);
+
+    assert_eq!(leases.active_by_hostname(&"TESTHOSTNAME".to_owned(), Date::from(
+        "2".to_owned(),
+        "2019/01/01".to_owned(),
+        "22:30:00".to_owned(),
+        ).unwrap()).unwrap(), leases[0]);
+    assert_eq!(leases.active_by_hostname(&"TESTHOSTNAME".to_owned(), Date::from(
+        "2".to_owned(),
+        "2019/01/01".to_owned(),
+        "23:30:00".to_owned(),
+        ).unwrap()), None);
+}

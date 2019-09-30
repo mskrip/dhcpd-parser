@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::iter::Peekable;
 use std::ops::Index;
 
@@ -75,8 +76,12 @@ pub trait LeasesMethods {
     fn by_mac(&self, mac: MACAddress) -> Option<Lease>;
     fn by_mac_all(&self, mac: MACAddress) -> Vec<Lease>;
 
+    fn by_hostname(&self, hostname: &String) -> Option<Lease>;
+    fn active_by_hostname(&self, hostname: &String, active_at: Date) -> Option<Lease>;
+
     fn new() -> Leases;
     fn push(&mut self, l: Lease);
+    fn hostnames(&self) -> HashSet<String>;
 }
 
 impl LeasesMethods for Leases {
@@ -135,12 +140,55 @@ impl LeasesMethods for Leases {
         return result;
     }
 
+    fn active_by_hostname(&self, hostname: &String, active_at: Date) -> Option<Lease> {
+        let mut ls = self.0.clone();
+        ls.reverse();
+
+        for l in ls {
+            if l.is_active_at(active_at) {
+                let hn = l.hostname.as_ref();
+                if hn.is_some() && hn.unwrap() == hostname {
+                    return Some(l);
+                }
+            }
+        }
+
+        None
+    }
+
+    fn by_hostname(&self, hostname: &String) -> Option<Lease> {
+        let mut ls = self.0.clone();
+        ls.reverse();
+
+        for l in ls {
+            let hn = l.hostname.as_ref();
+            if hn.is_some() && hn.unwrap() == hostname {
+                return Some(l);
+            }
+        }
+
+        None
+    }
+
     fn new() -> Leases {
         Leases(Vec::new())
     }
 
     fn push(&mut self, l: Lease) {
         self.0.push(l);
+    }
+
+    fn hostnames(&self) -> HashSet<String> {
+        let mut res = HashSet::new();
+        let ls = self.0.clone();
+
+        for l in ls {
+            if l.hostname.is_some() {
+                res.insert(l.hostname.unwrap());
+            }
+        }
+
+        return res;
     }
 }
 
