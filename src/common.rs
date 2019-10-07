@@ -60,6 +60,21 @@ impl Date {
         Ok(result)
     }
 
+    /// Transforms UTC datetime in RFC3339 format into `Date` object
+    pub fn from_rfc3339<S: AsRef<str>>(weekday: u8, input: S) -> Result<Date, String> {
+        let input_s = input.as_ref();
+        let parts: Vec<&str> = input_s.split('T').collect();
+
+        if parts.len() != 2 || parts[1].len() < 8 {
+            return Err(format!("This doesn't seem like a correct RFC3339 date: {:?}", input_s));
+        }
+
+        let date = parts[0].replace("-", "/");
+        let time = parts[1].split_at(8).0.to_string();
+
+        Date::from(weekday.to_string(), date, time)
+    }
+
     pub fn new() -> Date {
         Date {
             weekday: 0,
