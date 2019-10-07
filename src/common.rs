@@ -1,9 +1,6 @@
 use std::fmt;
 use std::cmp;
 
-pub type IPAddress = String;
-pub type MACAddress = String;
-
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub struct Date {
     pub weekday: i64,
@@ -16,7 +13,11 @@ pub struct Date {
 }
 
 impl Date {
-    pub fn from(weekday: String, date: String, time: String) -> Result<Date, String> {
+    pub fn from<S: Into<String>>(wd: S, d: S, t: S) -> Result<Date, String> {
+        let weekday = wd.into();
+        let date = d.into();
+        let time = t.into();
+
         // Parses from `weekday year/month/day hour:minute:second` format as
         // specified in OpenBSD man page
         let mut result = Date::new();

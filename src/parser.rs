@@ -1,18 +1,18 @@
-use crate::lex::lex;
-use crate::lex::LexItem;
+use crate::leases::parse_lease;
 use crate::leases::Lease;
 use crate::leases::Leases;
 pub use crate::leases::LeasesMethods;
-use crate::leases::parse_lease;
+use crate::lex::lex;
+use crate::lex::LexItem;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParserResult {
-    pub leases: Leases
+    pub leases: Leases,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConfigKeyword {
-    Lease
+    Lease,
 }
 
 impl ConfigKeyword {
@@ -29,7 +29,6 @@ impl ConfigKeyword {
         }
     }
 }
-
 
 fn parse_config(tokens: Vec<LexItem>) -> Result<ParserResult, String> {
     let mut leases = Leases::new();
@@ -74,12 +73,13 @@ fn parse_config(tokens: Vec<LexItem>) -> Result<ParserResult, String> {
         }
     }
 
-    Ok(ParserResult {
-        leases: leases,
-    })
+    Ok(ParserResult { leases: leases })
 }
 
-pub fn parse(input: String) -> Result<ParserResult, String> {
+pub fn parse<S>(input: S) -> Result<ParserResult, String>
+where
+    S: Into<String>,
+{
     let tokens = lex(input).unwrap();
     return parse_config(tokens);
 }

@@ -2,11 +2,8 @@ use std::collections::HashSet;
 use std::iter::Peekable;
 use std::ops::Index;
 
-use crate::lex::LexItem;
 use crate::common::Date;
-use crate::common::MACAddress;
-use crate::common::IPAddress;
-
+use crate::lex::LexItem;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LeaseKeyword {
@@ -55,7 +52,7 @@ pub struct LeaseDates {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Hardware {
     pub h_type: String,
-    pub mac: MACAddress,
+    pub mac: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -70,14 +67,14 @@ impl Index<usize> for Leases {
 }
 
 pub trait LeasesMethods {
-    fn by_leased(&self, ip: IPAddress) -> Option<Lease>;
-    fn by_leased_all(&self, ip: IPAddress) -> Vec<Lease>;
+    fn by_leased<S: AsRef<str>>(&self, ip: S) -> Option<Lease>;
+    fn by_leased_all<S: AsRef<str>>(&self, ip: S) -> Vec<Lease>;
 
-    fn by_mac(&self, mac: MACAddress) -> Option<Lease>;
-    fn by_mac_all(&self, mac: MACAddress) -> Vec<Lease>;
+    fn by_mac<S: AsRef<str>>(&self, mac: S) -> Option<Lease>;
+    fn by_mac_all<S: AsRef<str>>(&self, mac: S) -> Vec<Lease>;
 
-    fn by_hostname(&self, hostname: &String) -> Option<Lease>;
-    fn active_by_hostname(&self, hostname: &String, active_at: Date) -> Option<Lease>;
+    fn by_hostname<S: AsRef<str>>(&self, hostname: S) -> Option<Lease>;
+    fn active_by_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease>;
 
     fn new() -> Leases;
     fn push(&mut self, l: Lease);
@@ -85,12 +82,12 @@ pub trait LeasesMethods {
 }
 
 impl LeasesMethods for Leases {
-    fn by_leased(&self, ip: IPAddress) -> Option<Lease> {
+    fn by_leased<S: AsRef<str>>(&self, ip: S) -> Option<Lease> {
         let mut ls = self.0.clone();
         ls.reverse();
 
         for l in ls {
-            if l.ip == ip {
+            if l.ip == ip.as_ref() {
                 return Some(l);
             }
         }
@@ -98,12 +95,12 @@ impl LeasesMethods for Leases {
         None
     }
 
-    fn by_leased_all(&self, ip: IPAddress) -> Vec<Lease> {
+    fn by_leased_all<S: AsRef<str>>(&self, ip: S) -> Vec<Lease> {
         let mut result = Vec::new();
         let ls = self.0.clone();
 
         for l in ls {
-            if l.ip == ip {
+            if l.ip == ip.as_ref() {
                 result.push(l);
             }
         }
@@ -111,14 +108,13 @@ impl LeasesMethods for Leases {
         return result;
     }
 
-    fn by_mac(&self, mac: MACAddress) -> Option<Lease> {
+    fn by_mac<S: AsRef<str>>(&self, mac: S) -> Option<Lease> {
         let mut ls = self.0.clone();
         ls.reverse();
 
         for l in ls {
             let hw = l.hardware.as_ref();
-            if hw.is_some() && hw.unwrap().mac == mac {
-
+            if hw.is_some() && hw.unwrap().mac == mac.as_ref() {
                 return Some(l);
             }
         }
@@ -126,13 +122,13 @@ impl LeasesMethods for Leases {
         None
     }
 
-    fn by_mac_all(&self, mac: MACAddress) -> Vec<Lease> {
+    fn by_mac_all<S: AsRef<str>>(&self, mac: S) -> Vec<Lease> {
         let mut result = Vec::new();
         let ls = self.0.clone();
 
         for l in ls {
             let hw = l.hardware.as_ref();
-            if hw.is_some() && hw.unwrap().mac == mac {
+            if hw.is_some() && hw.unwrap().mac == mac.as_ref() {
                 result.push(l);
             }
         }
@@ -140,14 +136,15 @@ impl LeasesMethods for Leases {
         return result;
     }
 
-    fn active_by_hostname(&self, hostname: &String, active_at: Date) -> Option<Lease> {
+    fn active_by_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease> {
         let mut ls = self.0.clone();
+        let hn_s = hostname.as_ref();
         ls.reverse();
 
         for l in ls {
             if l.is_active_at(active_at) {
                 let hn = l.hostname.as_ref();
-                if hn.is_some() && hn.unwrap() == hostname {
+                if hn.is_some() && hn.unwrap() == hn_s {
                     return Some(l);
                 }
             }
@@ -156,13 +153,14 @@ impl LeasesMethods for Leases {
         None
     }
 
-    fn by_hostname(&self, hostname: &String) -> Option<Lease> {
+    fn by_hostname<S: AsRef<str>>(&self, hostname: S) -> Option<Lease> {
         let mut ls = self.0.clone();
+        let hn_s = hostname.as_ref();
         ls.reverse();
 
         for l in ls {
             let hn = l.hostname.as_ref();
-            if hn.is_some() && hn.unwrap() == hostname {
+            if hn.is_some() && hn.unwrap() == hn_s {
                 return Some(l);
             }
         }
@@ -194,7 +192,7 @@ impl LeasesMethods for Leases {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Lease {
-    pub ip: IPAddress,
+    pub ip: String,
     pub dates: LeaseDates,
     pub hardware: Option<Hardware>,
     pub uid: Option<String>,
@@ -232,22 +230,37 @@ impl Lease {
     }
 }
 
-pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(lease: &mut Lease, iter: &mut Peekable<T>) -> Result<(), String> {
+pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(
+    lease: &mut Lease,
+    iter: &mut Peekable<T>,
+) -> Result<(), String> {
     while let Some(&nc) = iter.peek() {
         match nc {
             LexItem::Opt(LeaseKeyword::Starts) => {
                 iter.next();
-                let weekday = iter.peek().expect("Weekday for start date expected").to_string();
+                let weekday = iter
+                    .peek()
+                    .expect("Weekday for start date expected")
+                    .to_string();
                 iter.next();
-                let date = iter.peek().expect("Date for start date expected").to_string();
+                let date = iter
+                    .peek()
+                    .expect("Date for start date expected")
+                    .to_string();
                 iter.next();
-                let time = iter.peek().expect("Time for start date expected").to_string();
+                let time = iter
+                    .peek()
+                    .expect("Time for start date expected")
+                    .to_string();
 
                 lease.dates.starts.replace(Date::from(weekday, date, time)?);
             }
             LexItem::Opt(LeaseKeyword::Ends) => {
                 iter.next();
-                let weekday = iter.peek().expect("Weekday for end date expected").to_string();
+                let weekday = iter
+                    .peek()
+                    .expect("Weekday for end date expected")
+                    .to_string();
                 iter.next();
                 let date = iter.peek().expect("Date for end date expected").to_string();
                 iter.next();
@@ -268,15 +281,21 @@ pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(lease: &mut Lease, iter:
             }
             LexItem::Opt(LeaseKeyword::Uid) => {
                 iter.next();
-                lease.uid.replace(iter.peek().expect("Client identifier expected").to_string());
+                lease
+                    .uid
+                    .replace(iter.peek().expect("Client identifier expected").to_string());
             }
             LexItem::Opt(LeaseKeyword::ClientHostname) => {
                 iter.next();
-                lease.client_hostname.replace(iter.peek().expect("Client hostname expected").to_string());
+                lease
+                    .client_hostname
+                    .replace(iter.peek().expect("Client hostname expected").to_string());
             }
             LexItem::Opt(LeaseKeyword::Hostname) => {
                 iter.next();
-                lease.hostname.replace(iter.peek().expect("Hostname expected").to_string());
+                lease
+                    .hostname
+                    .replace(iter.peek().expect("Hostname expected").to_string());
             }
             LexItem::Opt(LeaseKeyword::Abandoned) => {
                 lease.abandoned = true;
@@ -285,7 +304,10 @@ pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(lease: &mut Lease, iter:
                 return Ok(());
             }
             _ => {
-                return Err(format!("Unexpected option '{}'", iter.peek().unwrap().to_string()));
+                return Err(format!(
+                    "Unexpected option '{}'",
+                    iter.peek().unwrap().to_string()
+                ));
             }
         }
         iter.next();

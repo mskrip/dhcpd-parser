@@ -23,10 +23,15 @@ impl fmt::Display for LexItem {
     }
 }
 
-pub fn lex(input: String) -> Result<Vec<LexItem>, String> {
+pub fn lex<S>(input: S) -> Result<Vec<LexItem>, String>
+where
+    S: Into<String>,
+{
     let mut result = Vec::new();
 
-    let mut it = input.chars().peekable();
+    let input_str = input.into();
+
+    let mut it = input_str.chars().peekable();
     while let Some(&c) = it.peek() {
         match c {
             '(' | ')' | '[' | ']' | '{' | '}' => {
