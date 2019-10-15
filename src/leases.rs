@@ -67,24 +67,31 @@ impl Index<usize> for Leases {
 }
 
 pub trait LeasesMethods {
+    fn all(&self) -> Vec<Lease>;
+
     fn by_leased<S: AsRef<str>>(&self, ip: S) -> Option<Lease>;
     fn by_leased_all<S: AsRef<str>>(&self, ip: S) -> Vec<Lease>;
 
     fn by_mac<S: AsRef<str>>(&self, mac: S) -> Option<Lease>;
     fn by_mac_all<S: AsRef<str>>(&self, mac: S) -> Vec<Lease>;
 
-    fn by_hostname<S: AsRef<str>>(&self, hostname: S) -> Option<Lease>;
     fn active_by_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease>;
+    fn by_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease>;
 
-    fn by_client_hostname<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease>;
     fn active_by_client_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease>;
+    fn by_client_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease>;
 
     fn new() -> Leases;
     fn push(&mut self, l: Lease);
     fn hostnames(&self) -> HashSet<String>;
+    fn client_hostnames(&self) -> HashSet<String>;
 }
 
 impl LeasesMethods for Leases {
+    fn all(&self) -> Vec<Lease> {
+        self.0.clone()
+    }
+
     fn by_leased<S: AsRef<str>>(&self, ip: S) -> Option<Lease> {
         let mut ls = self.0.clone();
         ls.reverse();
@@ -156,19 +163,19 @@ impl LeasesMethods for Leases {
         None
     }
 
-    fn by_hostname<S: AsRef<str>>(&self, hostname: S) -> Option<Lease> {
-        let mut ls = self.0.clone();
+    fn by_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease> {
+        let mut res = Vec::new();
+        let ls = self.0.clone();
         let hn_s = hostname.as_ref();
-        ls.reverse();
 
         for l in ls {
             let hn = l.hostname.as_ref();
             if hn.is_some() && hn.unwrap() == hn_s {
-                return Some(l);
+                res.push(l);
             }
         }
 
-        None
+        res
     }
 
     fn active_by_client_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease> {
@@ -188,11 +195,10 @@ impl LeasesMethods for Leases {
         None
     }
 
-    fn by_client_hostname<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease> {
+    fn by_client_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease> {
         let mut res = Vec::new();
-        let mut ls = self.0.clone();
+        let ls = self.0.clone();
         let hn_s = hostname.as_ref();
-        ls.reverse();
 
         for l in ls {
             let hn = l.client_hostname.as_ref();
@@ -219,6 +225,19 @@ impl LeasesMethods for Leases {
         for l in ls {
             if l.hostname.is_some() {
                 res.insert(l.hostname.unwrap());
+            }
+        }
+
+        return res;
+    }
+
+    fn client_hostnames(&self) -> HashSet<String> {
+        let mut res = HashSet::new();
+        let ls = self.0.clone();
+
+        for l in ls {
+            if l.client_hostname.is_some() {
+                res.insert(l.client_hostname.unwrap());
             }
         }
 
@@ -296,7 +315,6 @@ pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(
                     .to_string();
                 if tz != LexItem::Endl.to_string() {
                     iter.next();
-                    // println!("tz: {:?}", iter.peek());
                     match iter.peek().expect("Semicolon expected") {
                         LexItem::Endl => (),
                         s => return Err(format!("Expected semicolon, found {}", s.to_string())),
