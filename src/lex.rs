@@ -7,6 +7,7 @@ use crate::parser::ConfigKeyword;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LexItem {
     Paren(char),
+    Endl,
     Word(String),
     Opt(LeaseKeyword),
     Decl(ConfigKeyword),
@@ -19,6 +20,7 @@ impl fmt::Display for LexItem {
             LexItem::Word(v) => v.fmt(f),
             LexItem::Opt(v) => write!(f, "{}", v.to_string()),
             LexItem::Decl(v) => write!(f, "{}", v.to_string()),
+            LexItem::Endl => write!(f, ";"),
         }
     }
 }
@@ -38,7 +40,11 @@ where
                 result.push(LexItem::Paren(c));
                 it.next();
             }
-            ' ' | '\n' => {
+            ' ' | '\n' | '\t' => {
+                it.next();
+            }
+            ';' => {
+                result.push(LexItem::Endl);
                 it.next();
             }
             _ => {
@@ -64,7 +70,7 @@ fn get_word<T: Iterator<Item = char>>(iter: &mut Peekable<T>) -> String {
     let mut word = String::new();
 
     while let Some(&nc) = iter.peek() {
-        if nc.is_whitespace() {
+        if nc.is_whitespace() || nc == ';' {
             break;
         }
 

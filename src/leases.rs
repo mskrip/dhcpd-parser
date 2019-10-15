@@ -76,6 +76,9 @@ pub trait LeasesMethods {
     fn by_hostname<S: AsRef<str>>(&self, hostname: S) -> Option<Lease>;
     fn active_by_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease>;
 
+    fn by_client_hostname<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease>;
+    fn active_by_client_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease>;
+
     fn new() -> Leases;
     fn push(&mut self, l: Lease);
     fn hostnames(&self) -> HashSet<String>;
@@ -168,6 +171,39 @@ impl LeasesMethods for Leases {
         None
     }
 
+    fn active_by_client_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease> {
+        let mut ls = self.0.clone();
+        let hn_s = hostname.as_ref();
+        ls.reverse();
+
+        for l in ls {
+            if l.is_active_at(active_at) {
+                let hn = l.client_hostname.as_ref();
+                if hn.is_some() && hn.unwrap() == hn_s {
+                    return Some(l);
+                }
+            }
+        }
+
+        None
+    }
+
+    fn by_client_hostname<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease> {
+        let mut res = Vec::new();
+        let mut ls = self.0.clone();
+        let hn_s = hostname.as_ref();
+        ls.reverse();
+
+        for l in ls {
+            let hn = l.client_hostname.as_ref();
+            if hn.is_some() && hn.unwrap() == hn_s {
+                res.push(l);
+            }
+        }
+
+        res
+    }
+
     fn new() -> Leases {
         Leases(Vec::new())
     }
@@ -252,6 +288,20 @@ pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(
                     .peek()
                     .expect("Time for start date expected")
                     .to_string();
+                iter.next();
+
+                let tz = iter
+                    .peek()
+                    .expect("Timezone or semicolon expected")
+                    .to_string();
+                if tz != LexItem::Endl.to_string() {
+                    iter.next();
+                    // println!("tz: {:?}", iter.peek());
+                    match iter.peek().expect("Semicolon expected") {
+                        LexItem::Endl => (),
+                        s => return Err(format!("Expected semicolon, found {}", s.to_string())),
+                    }
+                }
 
                 lease.dates.starts.replace(Date::from(weekday, date, time)?);
             }
@@ -265,6 +315,19 @@ pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(
                 let date = iter.peek().expect("Date for end date expected").to_string();
                 iter.next();
                 let time = iter.peek().expect("Time for end date expected").to_string();
+                iter.next();
+                let tz = iter
+                    .peek()
+                    .expect("Timezone or semicolon expected")
+                    .to_string();
+
+                if tz != LexItem::Endl.to_string() {
+                    iter.next();
+                    match iter.peek().expect("Semicolon expected") {
+                        LexItem::Endl => (),
+                        s => return Err(format!("Expected semicolon, found {}", s.to_string())),
+                    }
+                }
 
                 lease.dates.ends.replace(Date::from(weekday, date, time)?);
             }
@@ -273,6 +336,11 @@ pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(
                 let h_type = iter.peek().expect("Hardware type expected").to_string();
                 iter.next();
                 let mac = iter.peek().expect("MAC address expected").to_string();
+                iter.next();
+                match iter.peek().expect("Semicolon expected") {
+                    LexItem::Endl => (),
+                    s => return Err(format!("Expected semicolon, found {}", s.to_string())),
+                }
 
                 lease.hardware.replace(Hardware {
                     h_type: h_type,
@@ -284,21 +352,44 @@ pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(
                 lease
                     .uid
                     .replace(iter.peek().expect("Client identifier expected").to_string());
+
+                iter.next();
+                match iter.peek().expect("Semicolon expected") {
+                    LexItem::Endl => (),
+                    s => return Err(format!("Expected semicolon, found {}", s.to_string())),
+                }
             }
             LexItem::Opt(LeaseKeyword::ClientHostname) => {
                 iter.next();
-                lease
-                    .client_hostname
-                    .replace(iter.peek().expect("Client hostname expected").to_string());
+                lease.client_hostname.replace(unquote_hostname(
+                    iter.peek().expect("Client hostname expected").to_string(),
+                ));
+
+                iter.next();
+                match iter.peek().expect("Semicolon expected") {
+                    LexItem::Endl => (),
+                    s => return Err(format!("Expected semicolon, found {}", s.to_string())),
+                }
             }
             LexItem::Opt(LeaseKeyword::Hostname) => {
                 iter.next();
-                lease
-                    .hostname
-                    .replace(iter.peek().expect("Hostname expected").to_string());
+                lease.hostname.replace(unquote_hostname(
+                    iter.peek().expect("Hostname expected").to_string(),
+                ));
+
+                iter.next();
+                match iter.peek().expect("Semicolon expected") {
+                    LexItem::Endl => (),
+                    s => return Err(format!("Expected semicolon, found {}", s.to_string())),
+                }
             }
             LexItem::Opt(LeaseKeyword::Abandoned) => {
                 lease.abandoned = true;
+                iter.next();
+                match iter.peek().expect("Semicolon expected") {
+                    LexItem::Endl => (),
+                    s => return Err(format!("Expected semicolon, found {}", s.to_string())),
+                }
             }
             LexItem::Paren('}') => {
                 return Ok(());
@@ -314,4 +405,8 @@ pub fn parse_lease<'l, T: Iterator<Item = &'l LexItem>>(
     }
 
     Ok(())
+}
+
+fn unquote_hostname(hn: String) -> String {
+    hn.replace("\"", "")
 }

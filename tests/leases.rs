@@ -20,8 +20,8 @@ fn basic_test() {
 fn dates_test() {
     let res = parser::parse(
         "lease 255.254.253.252 {
-        starts 2 2019/01/01 22:00:00
-        ends 2 2019/01/01 22:00:00
+        starts 2 2019/01/01 22:00:00 UTC;
+        ends 2 2019/01/01 22:00:00 UTC;
     }"
         .to_string(),
     );
@@ -33,13 +33,13 @@ fn all_options_test() {
     let res = parser::parse(
         "
     lease 192.168.0.2 {
-        starts 2 2019/01/01 22:00:00
-        ends 2 2019/01/01 22:00:00
-        hardware type 11:11:11:11:11:11
-        uid Client1
-        client-hostname CLIENTHOSTNAME
-        hostname TESTHOSTNAME
-        abandoned
+        starts 2 2019/01/01 22:00:00 UTC;
+        ends 2 2019/01/01 22:00:00 UTC;
+        hardware type 11:11:11:11:11:11;
+        uid Client1;
+        client-hostname \"CLIENTHOSTNAME\";
+        hostname \"TESTHOSTNAME\";
+        abandoned;
     }",
     );
 
@@ -51,20 +51,20 @@ fn multiple_leases_test() {
     let res = parser::parse(
         "
     lease 192.168.0.2 {
-        starts 2 2019/01/01 22:00:00
-        ends 2 2019/01/01 22:00:00
-        hardware type 11:11:11:11:11:11
-        uid Client1
-        client-hostname CLIENTHOSTNAME
-        hostname TESTHOSTNAME
-        abandoned
+        starts 2 2019/01/01 22:00:00 UTC;
+        ends 2 2019/01/01 22:00:00 UTC;
+        hardware type 11:11:11:11:11:11;
+        uid Client1;
+        client-hostname \"CLIENTHOSTNAME\";
+        hostname \"TESTHOSTNAME\";
+        abandoned;
     }
 
     lease 192.168.0.3 {
-        starts 1 1985/01/01 00:00:00
-        hardware type 22:22:22:22:22:22
-        uid Client2
-        hostname TESTHOSTNAME
+        starts 1 1985/01/01 00:00:00 UTC;
+        hardware type 22:22:22:22:22:22;
+        uid Client2;
+        hostname \"TESTHOSTNAME\";
     }
     ",
     );
@@ -101,7 +101,7 @@ fn invalid_date_format_test() {
     let res = parser::parse(
         "
     lease 192.0.0.2 {
-        starts 2 2019-01-02T00:00:00Z
+        starts 2 2019-01-02 00:00:00;
     }",
     );
     assert!(res.is_err());
@@ -112,20 +112,20 @@ fn is_active_test() {
     let res = parser::parse(
         "
     lease 192.168.0.2 {
-        starts 2 2019/01/01 22:00:00
-        ends 2 2019/01/01 23:00:00
-        hardware type 11:11:11:11:11:11
-        uid Client1
-        client-hostname CLIENTHOSTNAME
-        hostname TESTHOSTNAME
-        abandoned
+        starts 2 2019/01/01 22:00:00 UTC;
+        ends 2 2019/01/01 23:00:00 UTC;
+        hardware type 11:11:11:11:11:11;
+        uid Client1;
+        client-hostname \"CLIENTHOSTNAME\";
+        hostname \"TESTHOSTNAME\";
+        abandoned;
     }
 
     lease 192.168.0.3 {
-        starts 1 1985/01/02 00:00:00
-        hardware type 22:22:22:22:22:22
-        uid Client2
-        hostname TESTHOSTNAME
+        starts 1 1985/01/02 00:00:00 UTC;
+        hardware type 22:22:22:22:22:22;
+        uid Client2;
+        hostname \"TESTHOSTNAME\";
     }
     ",
     );
@@ -162,21 +162,21 @@ fn hostnames_test() {
     let res = parser::parse(
         "
     lease 192.168.0.2 {
-        starts 2 2019/01/01 22:00:00
-        ends 2 2019/01/01 23:00:00
-        hardware type 11:11:11:11:11:11
-        uid Client1
-        client-hostname CLIENTHOSTNAME
-        hostname TESTHOSTNAME
-        abandoned
+        starts 2 2019/01/01 22:00:00 UTC;
+        ends 2 2019/01/01 23:00:00 UTC;
+        hardware type 11:11:11:11:11:11;
+        uid Client1;
+        client-hostname \"CLIENTHOSTNAME\";
+        hostname \"TESTHOSTNAME\";
+        abandoned;
     }
 
     lease 192.168.0.3 {
-        starts 1 1985/01/02 00:00:00
-        ends 1 1985/01/02 02:00:00
-        hardware type 22:22:22:22:22:22
-        uid Client2
-        hostname TESTHOSTNAME
+        starts 1 1985/01/02 00:00:00 UTC;
+        ends 1 1985/01/02 02:00:00 UTC;
+        hardware type 22:22:22:22:22:22;
+        uid Client2;
+        hostname \"TESTHOSTNAME\";
     }
     ",
     );
