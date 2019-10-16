@@ -7,7 +7,7 @@ repository = "https://github.com/mskrip/dhcpd-parser.git"
 readme = "README.md"
 keywords = ["dhcpd", "leases", "OpenBSD"]
 
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Marián Skrip <marian.skripp@gmail.com>"]
 edition = "2018"
 license = "MIT"
