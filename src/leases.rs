@@ -56,6 +56,32 @@ pub struct Hardware {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum LeasesField {
+    ClientHostname,
+    Hostname,
+    LeasedIP,
+    MAC,
+}
+
+impl LeasesField {
+    fn value_getter(&self) -> Box<dyn Fn(&Lease) -> Option<String>> {
+        match &self {
+            LeasesField::ClientHostname => {
+                Box::new(|l: &Lease| -> Option<String> { l.client_hostname.clone() })
+            }
+            LeasesField::Hostname => Box::new(|l: &Lease| -> Option<String> { l.hostname.clone() }),
+            LeasesField::LeasedIP => Box::new(|l: &Lease| -> Option<String> { Some(l.ip.clone()) }),
+            LeasesField::MAC => Box::new(|l: &Lease| -> Option<String> {
+                match &l.hardware {
+                    Some(h) => Some(h.mac.clone()),
+                    None => None,
+                }
+            }),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Leases(Vec<Lease>);
 
 impl Index<usize> for Leases {
@@ -69,6 +95,13 @@ impl Index<usize> for Leases {
 pub trait LeasesMethods {
     fn all(&self) -> Vec<Lease>;
 
+    fn active_by<S: AsRef<str>>(
+        &self,
+        field_name: LeasesField,
+        value: S,
+        active_at: Date,
+    ) -> Option<Lease>;
+
     fn by_leased<S: AsRef<str>>(&self, ip: S) -> Option<Lease>;
     fn by_leased_all<S: AsRef<str>>(&self, ip: S) -> Vec<Lease>;
 
@@ -78,7 +111,11 @@ pub trait LeasesMethods {
     fn active_by_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease>;
     fn by_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease>;
 
-    fn active_by_client_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease>;
+    fn active_by_client_hostname<S: AsRef<str>>(
+        &self,
+        hostname: S,
+        active_at: Date,
+    ) -> Option<Lease>;
     fn by_client_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease>;
 
     fn new() -> Leases;
@@ -90,6 +127,37 @@ pub trait LeasesMethods {
 impl LeasesMethods for Leases {
     fn all(&self) -> Vec<Lease> {
         self.0.clone()
+    }
+
+    /// Returns a lease by some field and it's value if it exists.
+    ///
+    /// The lease has to be active:
+    ///
+    /// - `active_at` is between it's `starts` and `ends` datetime
+    /// - is not `abandoned`
+    /// - no active leases that match the field value exist after it
+    fn active_by<S: AsRef<str>>(
+        &self,
+        field: LeasesField,
+        value: S,
+        active_at: Date,
+    ) -> Option<Lease> {
+        let expected_val = value.as_ref();
+        let get_val = field.value_getter();
+
+        let mut ls = self.0.clone();
+        ls.reverse();
+
+        for l in ls {
+            if l.is_active_at(active_at) && !l.abandoned {
+                let val = get_val(&l);
+                if val.is_some() && val.unwrap() == expected_val {
+                    return Some(l);
+                }
+            }
+        }
+
+        None
     }
 
     fn by_leased<S: AsRef<str>>(&self, ip: S) -> Option<Lease> {
@@ -147,20 +215,7 @@ impl LeasesMethods for Leases {
     }
 
     fn active_by_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease> {
-        let mut ls = self.0.clone();
-        let hn_s = hostname.as_ref();
-        ls.reverse();
-
-        for l in ls {
-            if l.is_active_at(active_at) {
-                let hn = l.hostname.as_ref();
-                if hn.is_some() && hn.unwrap() == hn_s {
-                    return Some(l);
-                }
-            }
-        }
-
-        None
+        self.active_by(LeasesField::Hostname, hostname, active_at)
     }
 
     fn by_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease> {
@@ -178,21 +233,12 @@ impl LeasesMethods for Leases {
         res
     }
 
-    fn active_by_client_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease> {
-        let mut ls = self.0.clone();
-        let hn_s = hostname.as_ref();
-        ls.reverse();
-
-        for l in ls {
-            if l.is_active_at(active_at) {
-                let hn = l.client_hostname.as_ref();
-                if hn.is_some() && hn.unwrap() == hn_s {
-                    return Some(l);
-                }
-            }
-        }
-
-        None
+    fn active_by_client_hostname<S: AsRef<str>>(
+        &self,
+        hostname: S,
+        active_at: Date,
+    ) -> Option<Lease> {
+        self.active_by(LeasesField::ClientHostname, hostname, active_at)
     }
 
     fn by_client_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease> {
