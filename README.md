@@ -47,10 +47,6 @@ assert!(leases[1].dates.ends.is_none());
 assert!(leases[0].abandoned);
 assert!(!leases[1].abandoned);
 assert_eq!(
-    leases.by_leased("192.168.0.2".to_string()).unwrap(),
-    leases[0],
-);
-assert_eq!(
     leases.client_hostnames(),
     ["CLIENTHOSTNAME".to_owned()]
         .iter()

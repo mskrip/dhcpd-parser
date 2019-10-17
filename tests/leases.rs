@@ -81,8 +81,6 @@ fn multiple_leases_test() {
 
     assert!(leases[0].abandoned);
     assert!(!leases[1].abandoned);
-
-    assert_eq!(leases.by_leased("192.168.0.2").unwrap(), leases[0]);
 }
 
 #[test]
@@ -186,26 +184,6 @@ fn hostnames_test() {
         leases.hostnames(),
         ["TESTHOSTNAME".to_owned()].iter().cloned().collect()
     );
-
-    assert_eq!(leases.by_hostname_all("TESTHOSTNAME")[1], leases[1]);
-    assert_eq!(leases.by_hostname_all("NOSUCHHOSTNAME"), vec!());
-
-    assert_eq!(
-        leases
-            .active_by_hostname(
-                "TESTHOSTNAME",
-                Date::from("2", "2019/01/01", "22:30:00",).unwrap()
-            )
-            .unwrap(),
-        leases[0]
-    );
-    assert_eq!(
-        leases.active_by_hostname(
-            "TESTHOSTNAME",
-            Date::from("2", "2019/01/01", "23:30:00",).unwrap()
-        ),
-        None
-    );
 }
 
 #[test]
@@ -249,81 +227,5 @@ fn client_hostnames_test() {
             .iter()
             .cloned()
             .collect()
-    );
-
-    assert_eq!(
-        leases.by_client_hostname_all("CLIENTHOSTNAME")[0],
-        leases[0]
-    );
-    assert_eq!(leases.by_client_hostname_all("HN")[0], leases[1]);
-    assert_eq!(leases.by_client_hostname_all("HN")[1], leases[2]);
-    assert_eq!(leases.by_client_hostname_all("NOSUCHHOSTNAME"), vec!());
-
-    assert_eq!(
-        leases
-            .active_by_client_hostname("HN", Date::from("2", "1986/01/02", "22:30:00",).unwrap())
-            .unwrap(),
-        leases[2]
-    );
-    assert_eq!(
-        leases.active_by_client_hostname("HN", Date::from("2", "2019/01/01", "23:30:00",).unwrap()),
-        None
-    );
-}
-
-#[test]
-fn abandoned_test() {
-    let res = parser::parse(
-        "
-    lease 192.168.0.4 {
-        starts 2 2019/01/01 22:00:00 UTC;
-        uid Client1;
-        client-hostname \"CLIENT01\";
-        hostname \"CLIENT01\";
-    }
-
-    lease 192.168.0.2 {
-        starts 2 2019/01/01 22:00:00 UTC;
-        uid Client1;
-        client-hostname \"CLIENT01\";
-        hostname \"CLIENT01\";
-        abandoned;
-    }
-
-    lease 192.168.0.3 {
-        starts 1 1985/01/02 00:00:00 UTC;
-        ends 1 1985/01/02 02:00:00 UTC;
-        hardware type 22:22:22:22:22:22;
-        uid Client2;
-        hostname \"CLIENT02\";
-        client-hostname \"CLIENT02\";
-    }
-
-    lease 192.168.0.3 {
-        starts 1 1986/01/02 00:00:00 UTC;
-        ends 1 1986/12/02 02:00:00 UTC;
-        hardware type 22:22:22:22:22:22;
-        uid Client2;
-        client-hostname \"CLIENT02\";
-        abandoned;
-    }
-    ",
-    );
-
-    let leases = res.unwrap().leases;
-
-    assert_eq!(
-        leases.active_by_client_hostname(
-            "CLIENT02",
-            Date::from("2", "1986/01/02", "22:30:00",).unwrap()
-        ),
-        None
-    );
-    assert_eq!(
-        leases.active_by_client_hostname(
-            "CLIENT01",
-            Date::from("2", "2019/01/10", "00:00:00",).unwrap()
-        ).unwrap(),
-        leases[0],
     );
 }

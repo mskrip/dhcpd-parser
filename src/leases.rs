@@ -95,6 +95,7 @@ impl Index<usize> for Leases {
 pub trait LeasesMethods {
     fn all(&self) -> Vec<Lease>;
 
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn active_by<S: AsRef<str>>(
         &self,
         field_name: LeasesField,
@@ -102,20 +103,28 @@ pub trait LeasesMethods {
         active_at: Date,
     ) -> Option<Lease>;
 
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn by_leased<S: AsRef<str>>(&self, ip: S) -> Option<Lease>;
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn by_leased_all<S: AsRef<str>>(&self, ip: S) -> Vec<Lease>;
 
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn by_mac<S: AsRef<str>>(&self, mac: S) -> Option<Lease>;
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn by_mac_all<S: AsRef<str>>(&self, mac: S) -> Vec<Lease>;
 
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn active_by_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease>;
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn by_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease>;
 
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn active_by_client_hostname<S: AsRef<str>>(
         &self,
         hostname: S,
         active_at: Date,
     ) -> Option<Lease>;
+    #[deprecated(since = "0.4.3", note="any filtering logic should be done by user")]
     fn by_client_hostname_all<S: AsRef<str>>(&self, hostname: S) -> Vec<Lease>;
 
     fn new() -> Leases;
@@ -215,6 +224,7 @@ impl LeasesMethods for Leases {
     }
 
     fn active_by_hostname<S: AsRef<str>>(&self, hostname: S, active_at: Date) -> Option<Lease> {
+        #[allow(deprecated)]
         self.active_by(LeasesField::Hostname, hostname, active_at)
     }
 
@@ -238,6 +248,7 @@ impl LeasesMethods for Leases {
         hostname: S,
         active_at: Date,
     ) -> Option<Lease> {
+        #[allow(deprecated)]
         self.active_by(LeasesField::ClientHostname, hostname, active_at)
     }
 
